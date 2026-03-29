@@ -43,8 +43,12 @@ PyInstaller onefile 빌드. 코드 변경 후 exe 재빌드를 하지 않으면 
 **모든 작업지시서의 커밋 Step 앞에 exe 재빌드 Step을 포함한다.**
 
 빌드 명령:
-- .spec 파일이 있으면: `pyinstaller Explorer.spec`
-- 없으면: `pyinstaller --onefile --noconsole --name Explorer --icon icon.ico --add-data "index.html;." --add-data "app.js;." --add-data "style.css;." main.py`
+```
+cd C:\dev\apps\explorer
+pyinstaller Explorer.spec
+```
+
+출력 경로: `C:\dev\apps\explorer\build\Explorer\Explorer.exe`
 
 ### 경로 보안
 api.py의 `_is_allowed()`로 모든 파일 접근을 제한. favorites.json의 경로가 ALLOWED_PATHS와 동기화됨. 우회 금지.
