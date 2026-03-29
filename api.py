@@ -4,6 +4,9 @@
 import os
 import shutil
 import subprocess
+import ctypes
+import struct
+from ctypes import wintypes
 from pathlib import Path
 
 ROOT_PATH = r"C:\dev"
@@ -131,3 +134,47 @@ class Api:
             if not candidate.exists():
                 return candidate
             counter += 1
+
+    def copy_to_clipboard(self, file_path: str) -> dict:
+        """시스템 클립보드에 파일을 CF_HDROP 포맷으로 복사"""
+        try:
+            file_path = os.path.abspath(file_path)
+            if not os.path.exists(file_path):
+                return {'success': False, 'error': '파일이 존재하지 않습니다'}
+
+            # DROPFILES 구조체: 20바이트 헤더
+            # pFiles(4) + pt.x(4) + pt.y(4) + fNC(4) + fWide(4)
+            offset = 20
+            fWide = 1  # 유니코드 사용
+
+            # 파일 경로를 UTF-16LE로 인코딩 + 이중 널 종료
+            encoded = file_path.encode('utf-16-le') + b'\x00\x00' + b'\x00\x00'
+
+            # DROPFILES 헤더 생성
+            header = struct.pack('IiiII', offset, 0, 0, 0, fWide)
+            data = header + encoded
+
+            GHND = 0x0042
+            CF_HDROP = 15
+
+            kernel32 = ctypes.windll.kernel32
+            user32 = ctypes.windll.user32
+
+            user32.OpenClipboard(None)
+            user32.EmptyClipboard()
+
+            hGlobal = kernel32.GlobalAlloc(GHND, len(data))
+            pGlobal = kernel32.GlobalLock(hGlobal)
+            ctypes.memmove(pGlobal, data, len(data))
+            kernel32.GlobalUnlock(hGlobal)
+
+            user32.SetClipboardData(CF_HDROP, hGlobal)
+            user32.CloseClipboard()
+
+            return {'success': True, 'name': os.path.basename(file_path)}
+        except Exception as e:
+            try:
+                ctypes.windll.user32.CloseClipboard()
+            except:
+                pass
+            return {'success': False, 'error': str(e)}

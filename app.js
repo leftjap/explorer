@@ -355,33 +355,45 @@
         return rootPath;
     }
 
-    function handleCopy() {
+    async function handleCopy() {
         var sel = getSelectedItem();
         if (!sel) {
             statusbarEl.textContent = "복사할 항목을 선택하세요";
             return;
         }
-        clipboard.path = sel.dataset.path;
-        clipboard.mode = "copy";
-        statusbarEl.textContent = "복사: " + sel.dataset.name;
-
-        // cut 스타일 초기화
-        clearCutStyle();
+        clipboard = { path: sel.dataset.path, mode: "copy" };
+        document.querySelectorAll(".column-item.cut").forEach(function(el) {
+            el.classList.remove("cut");
+        });
+        try {
+            var result = await window.pywebview.api.copy_to_clipboard(sel.dataset.path);
+            if (result.success) {
+                statusbarEl.textContent = "복사: " + result.name;
+            } else {
+                statusbarEl.textContent = "복사 실패: " + result.error;
+            }
+        } catch (e) {
+            statusbarEl.textContent = "복사: " + sel.dataset.name;
+        }
     }
 
-    function handleCut() {
+    async function handleCut() {
         var sel = getSelectedItem();
         if (!sel) {
             statusbarEl.textContent = "잘라낼 항목을 선택하세요";
             return;
         }
-        clipboard.path = sel.dataset.path;
-        clipboard.mode = "cut";
-        statusbarEl.textContent = "잘라내기: " + sel.dataset.name;
-
-        // cut 스타일 적용
-        clearCutStyle();
+        clipboard = { path: sel.dataset.path, mode: "cut" };
+        document.querySelectorAll(".column-item.cut").forEach(function(el) {
+            el.classList.remove("cut");
+        });
         sel.classList.add("cut");
+        try {
+            await window.pywebview.api.copy_to_clipboard(sel.dataset.path);
+            statusbarEl.textContent = "잘라내기: " + sel.dataset.name;
+        } catch (e) {
+            statusbarEl.textContent = "잘라내기: " + sel.dataset.name;
+        }
     }
 
     async function handlePaste() {
