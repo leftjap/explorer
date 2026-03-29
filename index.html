@@ -10,6 +10,18 @@
 <body>
     <div id="breadcrumb"></div>
     <div id="columns"></div>
+    <div id="context-menu" class="context-menu" style="display:none;">
+        <div class="ctx-item" data-action="open">열기</div>
+        <div class="ctx-separator"></div>
+        <div class="ctx-item" data-action="copy">복사<span class="ctx-shortcut">Ctrl+C</span></div>
+        <div class="ctx-item" data-action="cut">잘라내기<span class="ctx-shortcut">Ctrl+X</span></div>
+        <div class="ctx-item" data-action="paste">붙여넣기<span class="ctx-shortcut">Ctrl+V</span></div>
+        <div class="ctx-separator"></div>
+        <div class="ctx-item" data-action="rename">이름 변경</div>
+        <div class="ctx-item" data-action="delete">삭제<span class="ctx-shortcut">Del</span></div>
+        <div class="ctx-separator"></div>
+        <div class="ctx-item" data-action="newFolder">새 폴더<span class="ctx-shortcut">Ctrl+Shift+N</span></div>
+    </div>
     <div id="statusbar">준비</div>
     <script src="app.js"></script>
 </body>

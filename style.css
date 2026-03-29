@@ -125,3 +125,55 @@ body {
 .column-item.cut {
     opacity: 0.5;
 }
+
+/* 이름 변경 활성화 스타일 */
+.column-item .name[contenteditable="true"] {
+    background: #3a3a3a;
+    outline: 1px solid #0078d4;
+    padding: 1px 4px;
+    min-width: 50px;
+}
+
+/* 컨텍스트 메뉴 */
+.context-menu {
+    position: fixed;
+    background: #2d2d2d;
+    border: 1px solid #454545;
+    border-radius: 4px;
+    padding: 4px 0;
+    min-width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.ctx-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 24px;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 13px;
+}
+
+.ctx-item:hover {
+    background: #094771;
+    color: #fff;
+}
+
+.ctx-item.disabled {
+    color: #666;
+    pointer-events: none;
+}
+
+.ctx-shortcut {
+    color: #888;
+    font-size: 11px;
+    margin-left: 24px;
+}
+
+.ctx-separator {
+    height: 1px;
+    background: #454545;
+    margin: 4px 0;
+}

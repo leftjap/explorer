@@ -8,10 +8,14 @@ import ctypes
 import struct
 from ctypes import wintypes
 from pathlib import Path
+from send2trash import send2trash
 
 ROOT_PATH = r"C:\dev"
 
 HIDDEN_NAMES = {"__pycache__", "node_modules", ".venv", ".git", ".claude", "$RECYCLE.BIN", "System Volume Information"}
+
+# undo 스택: 작업 취소를 위한 히스토리
+undo_stack = []
 
 
 class Api:
@@ -93,6 +97,7 @@ class Api:
             else:
                 shutil.copy2(str(src_p), str(target))
 
+            undo_stack.append({'type': 'copy', 'dest': str(target)})
             return {"ok": True, "dest": str(target)}
         except Exception as e:
             return {"error": str(e)}
@@ -116,6 +121,7 @@ class Api:
 
             shutil.move(str(src_p), str(target))
 
+            undo_stack.append({'type': 'move', 'src': str(src_p), 'dest': str(target)})
             return {"ok": True, "dest": str(target)}
         except Exception as e:
             return {"error": str(e)}
@@ -194,4 +200,93 @@ class Api:
                 ctypes.WinDLL('user32').CloseClipboard()
             except:
                 pass
+            return {'success': False, 'error': str(e)}
+
+    def delete_file(self, file_path):
+        """파일/폴더를 휴지통으로 이동"""
+        try:
+            file_path = os.path.abspath(file_path)
+            if not file_path.startswith(ROOT_PATH):
+                return {'success': False, 'error': '허용되지 않은 경로'}
+            if not os.path.exists(file_path):
+                return {'success': False, 'error': '파일이 존재하지 않습니다'}
+            name = os.path.basename(file_path)
+            send2trash(file_path)
+            return {'success': True, 'name': name}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def create_folder(self, parent_dir, folder_name):
+        """새 폴더 생성"""
+        try:
+            parent_dir = os.path.abspath(parent_dir)
+            if not parent_dir.startswith(ROOT_PATH):
+                return {'success': False, 'error': '허용되지 않은 경로'}
+            new_path = os.path.join(parent_dir, folder_name)
+            if os.path.exists(new_path):
+                return {'success': False, 'error': '이미 존재하는 이름입니다'}
+            os.makedirs(new_path)
+            undo_stack.append({'type': 'create_folder', 'path': new_path})
+            return {'success': True, 'name': folder_name, 'path': new_path}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def rename_file(self, old_path, new_name):
+        """파일/폴더 이름 변경"""
+        try:
+            old_path = os.path.abspath(old_path)
+            if not old_path.startswith(ROOT_PATH):
+                return {'success': False, 'error': '허용되지 않은 경로'}
+            if not os.path.exists(old_path):
+                return {'success': False, 'error': '파일이 존재하지 않습니다'}
+            parent = os.path.dirname(old_path)
+            new_path = os.path.join(parent, new_name)
+            if os.path.exists(new_path):
+                return {'success': False, 'error': '이미 존재하는 이름입니다'}
+            os.rename(old_path, new_path)
+            undo_stack.append({'type': 'rename', 'old_path': old_path, 'new_path': new_path})
+            return {'success': True, 'old_name': os.path.basename(old_path), 'new_name': new_name, 'new_path': new_path}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    def undo(self):
+        """마지막 작업 실행 취소"""
+        try:
+            if not undo_stack:
+                return {'success': False, 'error': '취소할 작업이 없습니다'}
+            action = undo_stack.pop()
+            action_type = action['type']
+
+            if action_type == 'copy':
+                # 복사된 파일 삭제
+                if os.path.exists(action['dest']):
+                    if os.path.isdir(action['dest']):
+                        shutil.rmtree(action['dest'])
+                    else:
+                        os.remove(action['dest'])
+                    return {'success': True, 'message': '복사 취소: ' + os.path.basename(action['dest'])}
+
+            elif action_type == 'move':
+                # 원래 위치로 되돌리기
+                if os.path.exists(action['dest']):
+                    shutil.move(action['dest'], action['src'])
+                    return {'success': True, 'message': '이동 취소: ' + os.path.basename(action['src'])}
+
+            elif action_type == 'rename':
+                # 원래 이름으로 되돌리기
+                if os.path.exists(action['new_path']):
+                    os.rename(action['new_path'], action['old_path'])
+                    return {'success': True, 'message': '이름 변경 취소: ' + os.path.basename(action['old_path'])}
+
+            elif action_type == 'create_folder':
+                # 생성된 폴더 삭제 (비어있는 경우만)
+                if os.path.exists(action['path']):
+                    if not os.listdir(action['path']):
+                        os.rmdir(action['path'])
+                        return {'success': True, 'message': '폴더 생성 취소: ' + os.path.basename(action['path'])}
+                    else:
+                        return {'success': False, 'error': '폴더가 비어있지 않아 취소 불가'}
+
+            return {'success': False, 'error': '취소할 수 없는 작업'}
+        except Exception as e:
             return {'success': False, 'error': str(e)}

@@ -14,6 +14,13 @@
     // 클립보드 상태
     var clipboard = { path: "", mode: "" }; // mode: "copy" | "cut"
 
+    // 시차 클릭 이름 변경 상태
+    var renameState = {
+        lastClickedPath: null,
+        lastClickTime: 0,
+        renameTimeout: null
+    };
+
     // --- 초기화 ---
 
     async function init() {
@@ -40,10 +47,40 @@
                 handlePaste();
                 return;
             }
+            // Delete: 휴지통 삭제
+            if (e.code === 'Delete' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                // rename 활성화 중이면 스킵
+                if (document.querySelector('.name[contenteditable="true"]')) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                handleDelete();
+                return;
+            }
+            // Ctrl+Shift+N: 새 폴더
+            if (e.ctrlKey && e.shiftKey && !e.altKey && e.code === 'KeyN') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleNewFolder();
+                return;
+            }
+            // Ctrl+Z: 실행 취소
+            if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyZ') {
+                // rename 활성화 중이면 스킵 (텍스트 undo)
+                if (document.querySelector('.name[contenteditable="true"]')) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                handleUndo();
+                return;
+            }
             // 나머지 키는 기존 로직
             handleKeydown(e);
         }, true);
 
+        initContextMenu();
         rootPath = await window.pywebview.api.get_root();
         await loadColumn(rootPath, 0);
     }
@@ -106,11 +143,7 @@
                 }
 
                 row.addEventListener("click", function () {
-                    handleItemClick(row, depth);
-                });
-
-                row.addEventListener("dblclick", function () {
-                    handleItemDblClick(row);
+                    handleItemClickUnified(row, depth);
                 });
 
                 col.appendChild(row);
@@ -178,11 +211,7 @@
                 }
 
                 row.addEventListener("click", function () {
-                    handleItemClick(row, depth);
-                });
-
-                row.addEventListener("dblclick", function () {
-                    handleItemDblClick(row);
+                    handleItemClickUnified(row, depth);
                 });
 
                 col.appendChild(row);
@@ -194,7 +223,38 @@
 
     // --- 클릭 핸들러 ---
 
-    function handleItemClick(row, depth) {
+    function handleItemClickUnified(row, depth) {
+        var now = Date.now();
+        var path = row.dataset.path;
+
+        // 시차 클릭 (300ms 이내) → 더블클릭 취급
+        if (now - renameState.lastClickTime < 300 && renameState.lastClickedPath === path) {
+            clearTimeout(renameState.renameTimeout);
+            renameState.lastClickedPath = null;
+            // 더블클릭 처리 (폴더 진입 또는 파일 열기)
+            handleDoubleClick(row, depth);
+            return;
+        }
+
+        // 이미 선택된 항목을 다시 클릭 (300ms~1500ms) → rename 예약
+        if (renameState.lastClickedPath === path && now - renameState.lastClickTime >= 300) {
+            clearTimeout(renameState.renameTimeout);
+            renameState.renameTimeout = setTimeout(function() {
+                startRename(row);
+            }, 500);
+            renameState.lastClickedPath = path;
+            renameState.lastClickTime = now;
+            return;
+        }
+
+        // 새 항목 클릭 → 기존 선택 로직
+        clearTimeout(renameState.renameTimeout);
+        renameState.lastClickedPath = path;
+        renameState.lastClickTime = now;
+        selectItem(row, depth);
+    }
+
+    function selectItem(row, depth) {
         var col = row.parentElement;
         var prevSelected = col.querySelector(".selected");
         if (prevSelected) {
@@ -215,8 +275,11 @@
         }
     }
 
-    function handleItemDblClick(row) {
-        if (row.dataset.isDir === "false") {
+    function handleDoubleClick(row, depth) {
+        // 더블클릭: 폴더는 진입, 파일은 열기
+        if (row.dataset.isDir === "true") {
+            selectItem(row, depth);
+        } else {
             openFile(row.dataset.path);
         }
     }
@@ -258,6 +321,9 @@
     }
 
     function handleKeydown(e) {
+        // rename 활성화 중이면 방향키/Delete 처리 제외
+        if (document.querySelector('.name[contenteditable="true"]')) return;
+
         var active = getActiveColumn();
         if (!active) return;
 
@@ -488,5 +554,322 @@
 
     function updateStatusbar(count) {
         statusbarEl.textContent = count + "개 항목";
+    }
+
+    // --- Delete 휴지통 삭제 ---
+
+    async function handleDelete() {
+        var selected = getSelectedItem();
+        if (!selected) return;
+        var name = selected.dataset.name;
+        var path = selected.dataset.path;
+        var isDir = selected.dataset.isDir === "true";
+        if (!confirm(name + '을(를) 휴지통으로 이동하시겠습니까?')) return;
+        try {
+            var result = await window.pywebview.api.delete_file(path);
+            if (result.success) {
+                statusbarEl.textContent = '삭제됨: ' + result.name;
+                // 현재 컬럼 찾기
+                var col = selected.parentElement;
+                var depth = parseInt(col.dataset.depth);
+                // 폴더 삭제면 하위 컬럼 제거
+                if (isDir) {
+                    while (columnsEl.children.length > depth + 1) {
+                        columnsEl.removeChild(columnsEl.lastChild);
+                    }
+                    columnPaths = columnPaths.slice(0, depth + 1);
+                }
+                // 현재 컬럼 새로고침
+                refreshColumn(depth);
+            } else {
+                statusbarEl.textContent = '삭제 실패: ' + result.error;
+            }
+        } catch (e) {
+            statusbarEl.textContent = '삭제 실패: ' + e.message;
+        }
+    }
+
+    // --- Ctrl+Shift+N 새 폴더 ---
+
+    async function handleNewFolder() {
+        var currentDir = getCurrentDirectory();
+        if (!currentDir) return;
+        var folderName = prompt('새 폴더 이름:');
+        if (!folderName || folderName.trim() === '') return;
+        try {
+            var result = await window.pywebview.api.create_folder(currentDir, folderName.trim());
+            if (result.success) {
+                statusbarEl.textContent = '생성됨: ' + result.name;
+                // 현재 컬럼 새로고침
+                var columns = document.querySelectorAll('.column');
+                var targetDepth = -1;
+                for (var i = 0; i < columns.length; i++) {
+                    if (columns[i].dataset.path === currentDir) {
+                        targetDepth = i;
+                        break;
+                    }
+                }
+                if (targetDepth >= 0) {
+                    refreshColumn(targetDepth);
+                }
+            } else {
+                statusbarEl.textContent = '생성 실패: ' + result.error;
+            }
+        } catch (e) {
+            statusbarEl.textContent = '생성 실패: ' + e.message;
+        }
+    }
+
+    function getCurrentDirectory() {
+        // 현재 보고 있는 폴더 경로
+        var columns = document.querySelectorAll('.column');
+        if (columns.length === 0) return null;
+        var lastColumn = columns[columns.length - 1];
+        return lastColumn.dataset.path || null;
+    }
+
+    // --- 시차 클릭 이름 변경 ---
+
+    function startRename(row) {
+        var nameSpan = row.querySelector('.name');
+        if (!nameSpan) return;
+        var oldName = nameSpan.textContent;
+        nameSpan.contentEditable = 'true';
+        nameSpan.focus();
+
+        // 확장자 앞까지만 선택
+        var dotIndex = oldName.lastIndexOf('.');
+        var range = document.createRange();
+        var sel = window.getSelection();
+        if (nameSpan.firstChild) {
+            range.setStart(nameSpan.firstChild, 0);
+            range.setEnd(nameSpan.firstChild, dotIndex > 0 ? dotIndex : oldName.length);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+
+        var keyHandler = function(e) {
+            if (e.code === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                finishRename(row, oldName, nameSpan.textContent.trim());
+                nameSpan.contentEditable = 'false';
+                nameSpan.removeEventListener('keydown', keyHandler);
+            }
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                nameSpan.textContent = oldName;
+                nameSpan.contentEditable = 'false';
+                nameSpan.removeEventListener('keydown', keyHandler);
+            }
+        };
+
+        nameSpan.addEventListener('keydown', keyHandler);
+
+        var blurHandler = function() {
+            if (nameSpan.contentEditable === 'true') {
+                finishRename(row, oldName, nameSpan.textContent.trim());
+                nameSpan.contentEditable = 'false';
+            }
+            nameSpan.removeEventListener('blur', blurHandler);
+        };
+
+        nameSpan.addEventListener('blur', blurHandler);
+    }
+
+    async function finishRename(row, oldName, newName) {
+        if (!newName || newName === oldName) return;
+        try {
+            var result = await window.pywebview.api.rename_file(row.dataset.path, newName);
+            if (result.success) {
+                row.dataset.path = result.new_path;
+                row.dataset.name = result.new_name;
+                row.querySelector('.name').textContent = result.new_name;
+                statusbarEl.textContent = '이름 변경: ' + result.old_name + ' → ' + result.new_name;
+                // 컬럼 새로고침
+                var col = row.parentElement;
+                var depth = parseInt(col.dataset.depth);
+                refreshColumn(depth);
+            } else {
+                row.querySelector('.name').textContent = oldName;
+                statusbarEl.textContent = '이름 변경 실패: ' + result.error;
+            }
+        } catch (e) {
+            row.querySelector('.name').textContent = oldName;
+            statusbarEl.textContent = '이름 변경 실패: ' + e.message;
+        }
+    }
+
+    // --- Ctrl+Z 실행 취소 ---
+
+    async function handleUndo() {
+        try {
+            var result = await window.pywebview.api.undo();
+            if (result.success) {
+                statusbarEl.textContent = result.message;
+                // 전체 컬럼 새로고침
+                reloadCurrentView();
+            } else {
+                statusbarEl.textContent = result.error;
+            }
+        } catch (e) {
+            statusbarEl.textContent = '실행 취소 실패: ' + e.message;
+        }
+    }
+
+    async function reloadCurrentView() {
+        // 현재 경로를 유지하면서 모든 컬럼 새로고침
+        var paths = columnPaths.slice();
+        if (paths.length === 0) {
+            await loadColumn(rootPath, 0);
+        } else {
+            for (var i = 0; i < paths.length; i++) {
+                var result = await window.pywebview.api.list_dir(paths[i]);
+                if (result.error) {
+                    // 삭제된 경로면 거기서 중단
+                    while (columnsEl.children.length > i) {
+                        columnsEl.removeChild(columnsEl.lastChild);
+                    }
+                    columnPaths = columnPaths.slice(0, i);
+                    break;
+                }
+                await refreshColumn(i);
+            }
+        }
+        updateBreadcrumb();
+    }
+
+    // --- 컨텍스트 메뉴 ---
+
+    var contextMenuEl = document.getElementById("context-menu");
+    var contextTarget = null; // 우클릭한 항목 (row element 또는 null)
+    var contextDepth = -1;    // 우클릭한 컬럼의 depth
+
+    function initContextMenu() {
+        // 우클릭 이벤트
+        columnsEl.addEventListener("contextmenu", function (e) {
+            e.preventDefault();
+
+            var row = e.target.closest(".column-item");
+            var col = e.target.closest(".column");
+
+            if (row && row.dataset.path) {
+                // 항목 우클릭 → 해당 항목 선택
+                contextTarget = row;
+                contextDepth = col ? parseInt(col.dataset.depth) : -1;
+                selectItem(row, contextDepth);
+            } else if (col) {
+                // 빈 영역 우클릭
+                contextTarget = null;
+                contextDepth = parseInt(col.dataset.depth);
+            } else {
+                contextTarget = null;
+                contextDepth = -1;
+            }
+
+            showContextMenu(e.clientX, e.clientY);
+        });
+
+        // 메뉴 항목 클릭
+        contextMenuEl.addEventListener("click", function (e) {
+            var item = e.target.closest(".ctx-item");
+            if (!item || item.classList.contains("disabled")) return;
+
+            var action = item.dataset.action;
+            hideContextMenu();
+
+            switch (action) {
+                case "open":
+                    if (contextTarget) {
+                        if (contextTarget.dataset.isDir === "true") {
+                            loadColumn(contextTarget.dataset.path, contextDepth + 1);
+                        } else {
+                            openFile(contextTarget.dataset.path);
+                        }
+                    }
+                    break;
+                case "copy":
+                    handleCopy();
+                    break;
+                case "cut":
+                    handleCut();
+                    break;
+                case "paste":
+                    handlePaste();
+                    break;
+                case "rename":
+                    if (contextTarget) {
+                        startRename(contextTarget);
+                    }
+                    break;
+                case "delete":
+                    handleDelete();
+                    break;
+                case "newFolder":
+                    handleNewFolder();
+                    break;
+            }
+        });
+
+        // 메뉴 밖 클릭 → 닫기
+        document.addEventListener("click", function () {
+            hideContextMenu();
+        });
+
+        // Esc → 닫기
+        document.addEventListener("keydown", function (e) {
+            if (e.code === "Escape" && contextMenuEl.style.display !== "none") {
+                hideContextMenu();
+            }
+        });
+    }
+
+    function showContextMenu(x, y) {
+        var hasTarget = contextTarget !== null;
+        var hasClipboard = clipboard.path !== "";
+
+        // 항목별 활성/비활성
+        var items = contextMenuEl.querySelectorAll(".ctx-item");
+        for (var i = 0; i < items.length; i++) {
+            var action = items[i].dataset.action;
+            items[i].classList.remove("disabled");
+
+            if (action === "open" && !hasTarget) {
+                items[i].classList.add("disabled");
+            }
+            if ((action === "copy" || action === "cut") && !hasTarget) {
+                items[i].classList.add("disabled");
+            }
+            if (action === "paste" && !hasClipboard) {
+                items[i].classList.add("disabled");
+            }
+            if (action === "rename" && !hasTarget) {
+                items[i].classList.add("disabled");
+            }
+            if (action === "delete" && !hasTarget) {
+                items[i].classList.add("disabled");
+            }
+        }
+
+        // 위치 결정 (화면 밖으로 나가지 않도록)
+        contextMenuEl.style.display = "block";
+        var menuW = contextMenuEl.offsetWidth;
+        var menuH = contextMenuEl.offsetHeight;
+        var winW = window.innerWidth;
+        var winH = window.innerHeight;
+
+        if (x + menuW > winW) x = winW - menuW - 4;
+        if (y + menuH > winH) y = winH - menuH - 4;
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+
+        contextMenuEl.style.left = x + "px";
+        contextMenuEl.style.top = y + "px";
+    }
+
+    function hideContextMenu() {
+        contextMenuEl.style.display = "none";
+        contextTarget = null;
     }
 })();
