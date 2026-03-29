@@ -120,3 +120,8 @@ body {
     flex-shrink: 0;
     min-height: 24px;
 }
+
+/* 잘라내기 스타일 */
+.column-item.cut {
+    opacity: 0.5;
+}
