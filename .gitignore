@@ -3,6 +3,5 @@ __pycache__/
 *.pyc
 build/
 dist/
-*.spec
 *.lnk
 favorites.json

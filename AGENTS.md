@@ -50,6 +50,8 @@ pyinstaller Explorer.spec
 
 출력 경로: `C:\dev\apps\explorer\dist\Explorer.exe`
 
+⚠️ .spec은 레포에 포함 필수 (gitignore 제외). 빌드 전 .spec의 onefile/onedir 모드를 확인한다. onefile: EXE()에 a.binaries, a.datas 포함 + COLLECT 없음. onedir: COLLECT 블록 존재.
+
 ### 경로 보안
 api.py의 `_is_allowed()`로 모든 파일 접근을 제한. favorites.json의 경로가 ALLOWED_PATHS와 동기화됨. 우회 금지.
 
