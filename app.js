@@ -17,9 +17,35 @@
     // --- 초기화 ---
 
     async function init() {
+        // Capture phase keydown 리스너 (최우선 처리 + preventDefault)
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+C: 복사
+            if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyC') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCopy();
+                return;
+            }
+            // Ctrl+X: 잘라내기
+            if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyX') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCut();
+                return;
+            }
+            // Ctrl+V: 붙여넣기
+            if (e.ctrlKey && !e.shiftKey && !e.altKey && e.code === 'KeyV') {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePaste();
+                return;
+            }
+            // 나머지 키는 기존 로직
+            handleKeydown(e);
+        }, true);
+
         rootPath = await window.pywebview.api.get_root();
         await loadColumn(rootPath, 0);
-        document.addEventListener("keydown", handleKeydown);
     }
 
     window.addEventListener("pywebviewready", function () {
@@ -232,25 +258,6 @@
     }
 
     function handleKeydown(e) {
-        // Ctrl+C: 복사
-        if (e.ctrlKey && e.key === "c") {
-            e.preventDefault();
-            handleCopy();
-            return;
-        }
-        // Ctrl+X: 잘라내기
-        if (e.ctrlKey && e.key === "x") {
-            e.preventDefault();
-            handleCut();
-            return;
-        }
-        // Ctrl+V: 붙여넣기
-        if (e.ctrlKey && e.key === "v") {
-            e.preventDefault();
-            handlePaste();
-            return;
-        }
-
         var active = getActiveColumn();
         if (!active) return;
 
