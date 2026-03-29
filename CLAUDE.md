@@ -2,9 +2,8 @@
 # CLAUDE.md — Explorer (Miller Columns 파일 탐색기)
 
 ## 실행 방법
-cd C:\dev\apps\explorer
-.venv\Scripts\activate
-python main.py
+- 사용자: `run.vbs` 더블클릭 (CMD 창 없이 앱만 실행)
+- 개발자: 터미널에서 `cd C:\dev\apps\explorer && .venv\Scripts\activate && python main.py`
 
 ## 구조
 - main.py: pywebview 윈도우 생성 + API 연결
