@@ -23,6 +23,33 @@
         renameTimeout: null
     };
 
+    // 컬럼 너비 저장 (depth별)
+    var COLUMN_WIDTHS_KEY = "explorer_column_widths";
+
+    function loadColumnWidths() {
+        try {
+            var stored = localStorage.getItem(COLUMN_WIDTHS_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveColumnWidth(depth, width) {
+        var widths = loadColumnWidths();
+        widths[depth] = width;
+        try {
+            localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(widths));
+        } catch (e) {
+            // localStorage 실패 무시
+        }
+    }
+
+    function getColumnWidth(depth) {
+        var widths = loadColumnWidths();
+        return widths[depth] || null;
+    }
+
     // --- 초기화 ---
 
     async function init() {
@@ -285,6 +312,12 @@
         col.dataset.depth = depth;
         col.dataset.path = path;
 
+        // 저장된 컬럼 너비 적용
+        var savedWidth = getColumnWidth(depth);
+        if (savedWidth) {
+            col.style.width = savedWidth + "px";
+        }
+
         if (result.items.length === 0) {
             var empty = document.createElement("div");
             empty.className = "column-item";
@@ -374,6 +407,14 @@
 
         function onMouseUp() {
             resizer.classList.remove("active");
+
+            // 최종 너비를 depth별로 localStorage에 저장
+            var finalWidth = col.offsetWidth;
+            var depth = parseInt(col.dataset.depth);
+            if (!isNaN(depth)) {
+                saveColumnWidth(depth, finalWidth);
+            }
+
             if (overlay) {
                 overlay.removeEventListener("mousemove", onMouseMove);
                 overlay.removeEventListener("mouseup", onMouseUp);
@@ -517,13 +558,34 @@
     }
 
     function selectItem(row, depth) {
-        // 모든 컬럼의 선택 해제
-        var allSelected = columnsEl.querySelectorAll(".column-item.selected");
-        for (var i = 0; i < allSelected.length; i++) {
-            allSelected[i].classList.remove("selected");
+        // 같은 depth + 하위 컬럼의 선택만 해제 (상위 컬럼 선택은 유지)
+        var allCols = columnsEl.querySelectorAll(".column");
+        for (var i = 0; i < allCols.length; i++) {
+            var colDepth = parseInt(allCols[i].dataset.depth);
+            if (colDepth >= depth) {
+                var selected = allCols[i].querySelectorAll(".column-item.selected");
+                for (var j = 0; j < selected.length; j++) {
+                    selected[j].classList.remove("selected");
+                }
+            }
         }
 
         row.classList.add("selected");
+
+        // path-highlight: 상위 컬럼의 선택 항목에 연한 배경
+        var allItems = columnsEl.querySelectorAll(".column-item.path-highlight");
+        for (var k = 0; k < allItems.length; k++) {
+            allItems[k].classList.remove("path-highlight");
+        }
+        for (var m = 0; m < allCols.length; m++) {
+            var cd = parseInt(allCols[m].dataset.depth);
+            if (cd < depth) {
+                var sel = allCols[m].querySelector(".column-item.selected");
+                if (sel) {
+                    sel.classList.add("path-highlight");
+                }
+            }
+        }
 
         if (row.dataset.isDir === "true") {
             loadColumn(row.dataset.path, depth + 1);

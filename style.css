@@ -164,6 +164,12 @@ body {
     color: #fff;
 }
 
+/* 경로 하이라이트 — 상위 컬럼의 선택 항목 (현재 활성 컬럼보다 연한 배경) */
+.column-item.path-highlight {
+    background: #2a2d2e;
+    color: #fff;
+}
+
 .column-item .icon {
     flex-shrink: 0;
     font-size: 14px;
