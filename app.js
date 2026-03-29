@@ -172,15 +172,22 @@
     function initResizer(resizer, col) {
         var startX = 0;
         var startWidth = 0;
+        var overlay = null;
 
         function onMouseDown(e) {
             e.preventDefault();
+            e.stopPropagation();
             startX = e.clientX;
             startWidth = col.offsetWidth;
             resizer.classList.add("active");
-            document.body.style.cursor = "col-resize";
-            document.addEventListener("mousemove", onMouseMove);
-            document.addEventListener("mouseup", onMouseUp);
+
+            // 투명 오버레이로 전체 화면 마우스 이벤트 캡처
+            overlay = document.createElement("div");
+            overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;cursor:col-resize;";
+            document.body.appendChild(overlay);
+
+            overlay.addEventListener("mousemove", onMouseMove);
+            overlay.addEventListener("mouseup", onMouseUp);
         }
 
         function onMouseMove(e) {
@@ -192,9 +199,12 @@
 
         function onMouseUp() {
             resizer.classList.remove("active");
-            document.body.style.cursor = "";
-            document.removeEventListener("mousemove", onMouseMove);
-            document.removeEventListener("mouseup", onMouseUp);
+            if (overlay) {
+                overlay.removeEventListener("mousemove", onMouseMove);
+                overlay.removeEventListener("mouseup", onMouseUp);
+                document.body.removeChild(overlay);
+                overlay = null;
+            }
         }
 
         resizer.addEventListener("mousedown", onMouseDown);
