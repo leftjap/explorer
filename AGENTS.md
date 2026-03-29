@@ -39,7 +39,7 @@ favorites.json    — 사이드바 즐겨찾기 (런타임 자동 생성, gitign
 ## 2. explorer 고유 주의사항
 
 ### exe 재빌드 필수
-PyInstaller onefile 빌드. 코드 변경 후 exe 재빌드를 하지 않으면 변경분이 반영되지 않는다.
+PyInstaller onedir 빌드. 코드 변경 후 exe 재빌드를 하지 않으면 변경분이 반영되지 않는다.
 **모든 작업지시서의 커밋 Step 앞에 exe 재빌드 Step을 포함한다.**
 
 빌드 명령:
@@ -48,9 +48,9 @@ cd C:\dev\apps\explorer
 pyinstaller Explorer.spec
 ```
 
-출력 경로: `C:\dev\apps\explorer\dist\Explorer.exe`
+출력 경로: `C:\dev\apps\explorer\dist\Explorer\Explorer.exe`
 
-⚠️ .spec은 레포에 포함 필수 (gitignore 제외). 빌드 전 .spec의 onefile/onedir 모드를 확인한다. onefile: EXE()에 a.binaries, a.datas 포함 + COLLECT 없음. onedir: COLLECT 블록 존재.
+⚠️ .spec은 레포에 포함 필수 (gitignore 제외). onedir 모드 사용 — COLLECT 블록 존재, EXE에 exclude_binaries=True. onefile 전환 금지 (pywebview 동적 import 문제 발생).
 
 ### 경로 보안
 api.py의 `_is_allowed()`로 모든 파일 접근을 제한. favorites.json의 경로가 ALLOWED_PATHS와 동기화됨. 우회 금지.

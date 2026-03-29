@@ -6,7 +6,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('index.html', '.'), ('style.css', '.'), ('app.js', '.'), ('icon.ico', '.')],
-    hiddenimports=['webview'],
+    hiddenimports=['send2trash'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -19,9 +19,8 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='Explorer',
     debug=False,
     bootloader_ignore_signals=False,
@@ -34,4 +33,14 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['icon.ico'],
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='Explorer',
 )
