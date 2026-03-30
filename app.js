@@ -29,7 +29,12 @@
     async function loadColumnWidths() {
         if (_cachedColumnWidths !== null) return _cachedColumnWidths;
         try {
-            _cachedColumnWidths = await window.pywebview.api.get_column_widths();
+            var response = await fetch('column_widths.json', { cache: 'no-store' });
+            if (response.ok) {
+                _cachedColumnWidths = await response.json();
+            } else {
+                _cachedColumnWidths = {};
+            }
         } catch (e) {
             _cachedColumnWidths = {};
         }
