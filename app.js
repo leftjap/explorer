@@ -36,8 +36,9 @@
     }
 
     function saveColumnWidth(depth, width) {
+        if (typeof depth !== 'number' || isNaN(depth) || typeof width !== 'number' || isNaN(width)) return;
         var widths = loadColumnWidths();
-        widths[depth] = width;
+        widths[String(depth)] = Math.round(width);
         try {
             localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(widths));
         } catch (e) {
@@ -47,7 +48,7 @@
 
     function getColumnWidth(depth) {
         var widths = loadColumnWidths();
-        return widths[depth] || null;
+        return widths[String(depth)] || null;
     }
 
     // --- 초기화 ---
@@ -314,14 +315,12 @@
 
         // 저장된 컬럼 너비 적용
         var savedWidth = getColumnWidth(depth);
-        if (savedWidth) {
-            col.style.width = savedWidth + "px";
-        }
+        col.style.width = (savedWidth || 220) + "px";
 
         if (result.items.length === 0) {
             var empty = document.createElement("div");
             empty.className = "column-item";
-            empty.style.color = "#666";
+            empty.style.color = "rgba(0,0,0,0.36)";
             empty.textContent = "(비어 있음)";
             col.appendChild(empty);
         } else {
@@ -446,7 +445,7 @@
         if (result.items.length === 0) {
             var empty = document.createElement("div");
             empty.className = "column-item";
-            empty.style.color = "#666";
+            empty.style.color = "rgba(0,0,0,0.36)";
             empty.textContent = "(비어 있음)";
             col.appendChild(empty);
         } else {

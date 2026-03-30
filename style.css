@@ -1,4 +1,5 @@
 /* PROJECT: explorer */
+/* Windows 11 Explorer Light Theme — WinUI 3 tokens */
 
 * {
     margin: 0;
@@ -7,10 +8,10 @@
 }
 
 body {
-    font-family: "Segoe UI", -apple-system, sans-serif;
+    font-family: "Segoe UI Variable", "Segoe UI", -apple-system, sans-serif;
     font-size: 13px;
-    background: #1e1e1e;
-    color: #cccccc;
+    background: #f3f3f3;
+    color: rgba(0, 0, 0, 0.89);
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -24,34 +25,34 @@ body {
     align-items: center;
     gap: 4px;
     padding: 8px 12px;
-    background: #252526;
-    border-bottom: 1px solid #333;
+    background: #f9f9f9;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     font-size: 12px;
     min-height: 34px;
     flex-shrink: 0;
 }
 
 #breadcrumb span {
-    color: #888;
+    color: rgba(0, 0, 0, 0.62);
     cursor: pointer;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: 4px;
 }
 
 #breadcrumb span:hover {
-    background: #333;
-    color: #fff;
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.89);
 }
 
 #breadcrumb span.sep {
-    color: #555;
+    color: rgba(0, 0, 0, 0.36);
     cursor: default;
     padding: 0 2px;
 }
 
 #breadcrumb span.sep:hover {
     background: none;
-    color: #555;
+    color: rgba(0, 0, 0, 0.36);
 }
 
 /* 메인 영역 (사이드바 + 컬럼) */
@@ -66,7 +67,7 @@ body {
     width: 180px;
     min-width: 120px;
     max-width: 300px;
-    background: #252526;
+    background: #f9f9f9;
     border-right: none;
     overflow-y: auto;
     flex-shrink: 0;
@@ -76,14 +77,14 @@ body {
 #sidebar-resizer {
     width: 5px;
     cursor: col-resize;
-    background: #333;
+    background: #ebebeb;
     flex-shrink: 0;
     transition: background 0.15s;
 }
 
 #sidebar-resizer:hover,
 #sidebar-resizer.active {
-    background: #007acc;
+    background: #0078d4;
 }
 
 .sidebar-item {
@@ -92,18 +93,20 @@ body {
     gap: 8px;
     padding: 6px 16px;
     cursor: pointer;
-    color: #ccc;
+    color: rgba(0, 0, 0, 0.89);
     font-size: 13px;
-    border-radius: 0;
+    border-radius: 4px;
+    margin: 1px 4px;
 }
 
 .sidebar-item:hover {
-    background: #2a2d2e;
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-item.active {
-    background: #094771;
-    color: #fff;
+    background: rgba(0, 120, 212, 0.08);
+    color: #005a9e;
+    font-weight: 600;
 }
 
 .sidebar-item .sidebar-icon {
@@ -117,6 +120,7 @@ body {
     flex: 1;
     overflow-x: auto;
     overflow-y: hidden;
+    background: #ffffff;
 }
 
 /* 개별 컬럼 */
@@ -126,20 +130,21 @@ body {
     border-right: none;
     overflow-y: auto;
     flex-shrink: 0;
+    background: #ffffff;
 }
 
 /* 컬럼 리사이즈 핸들 */
 .column-resizer {
     width: 5px;
     cursor: col-resize;
-    background: #333;
+    background: #ebebeb;
     flex-shrink: 0;
     transition: background 0.15s;
 }
 
 .column-resizer:hover,
 .column-resizer.active {
-    background: #007acc;
+    background: #0078d4;
 }
 
 /* 컬럼 내 항목 */
@@ -153,21 +158,23 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     height: 28px;
+    border-radius: 4px;
+    margin: 1px 4px;
 }
 
 .column-item:hover {
-    background: #2a2d2e;
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .column-item.selected {
-    background: #094771;
-    color: #fff;
+    background: #cce8ff;
+    color: #000000;
 }
 
-/* 경로 하이라이트 — 상위 컬럼의 선택 항목 (현재 활성 컬럼보다 연한 배경) */
+/* 경로 하이라이트 — 상위 컬럼의 선택 항목 */
 .column-item.path-highlight {
-    background: #2a2d2e;
-    color: #fff;
+    background: #e5f3ff;
+    color: rgba(0, 0, 0, 0.89);
 }
 
 .column-item .icon {
@@ -182,7 +189,7 @@ body {
 
 .column-item .arrow {
     margin-left: auto;
-    color: #666;
+    color: rgba(0, 0, 0, 0.45);
     flex-shrink: 0;
     font-size: 10px;
 }
@@ -190,11 +197,12 @@ body {
 /* 상태바 */
 #statusbar {
     padding: 4px 12px;
-    background: #007acc;
-    color: #fff;
+    background: #f3f3f3;
+    color: rgba(0, 0, 0, 0.62);
     font-size: 12px;
     flex-shrink: 0;
     min-height: 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 /* 잘라내기 스타일 */
@@ -204,21 +212,22 @@ body {
 
 /* 이름 변경 활성화 스타일 */
 .column-item .name[contenteditable="true"] {
-    background: #3a3a3a;
+    background: #ffffff;
     outline: 1px solid #0078d4;
     padding: 1px 4px;
     min-width: 50px;
+    border-radius: 3px;
 }
 
 /* 컨텍스트 메뉴 */
 .context-menu {
     position: fixed;
-    background: #2d2d2d;
-    border: 1px solid #454545;
-    border-radius: 4px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
     padding: 4px 0;
     min-width: 200px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.14);
     z-index: 1000;
 }
 
@@ -228,29 +237,30 @@ body {
     justify-content: space-between;
     padding: 6px 24px;
     cursor: pointer;
-    color: #ccc;
+    color: rgba(0, 0, 0, 0.89);
     font-size: 13px;
+    border-radius: 4px;
+    margin: 1px 4px;
 }
 
 .ctx-item:hover {
-    background: #094771;
-    color: #fff;
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .ctx-item.disabled {
-    color: #666;
+    color: rgba(0, 0, 0, 0.36);
     pointer-events: none;
 }
 
 .ctx-shortcut {
-    color: #888;
+    color: rgba(0, 0, 0, 0.45);
     font-size: 11px;
     margin-left: 24px;
 }
 
 .ctx-separator {
     height: 1px;
-    background: #454545;
+    background: rgba(0, 0, 0, 0.06);
     margin: 4px 0;
 }
 
@@ -260,20 +270,43 @@ body {
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    color: #888;
+    color: rgba(0, 0, 0, 0.45);
     cursor: pointer;
     font-size: 13px;
-    border-top: 1px solid #333;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
     margin-top: 4px;
 }
 
 .sidebar-add:hover {
-    color: #ccc;
-    background: #2a2a2a;
+    color: rgba(0, 0, 0, 0.89);
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-add-icon {
     font-size: 15px;
     width: 20px;
     text-align: center;
+}
+
+/* 스크롤바 (Windows 11 스타일) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }

@@ -29,7 +29,7 @@ main.py           — pywebview 엔트리포인트. PyInstaller 리소스 경로
 api.py            — 파일시스템 API (pywebview expose). 허용 경로 보안, 즐겨찾기, 클립보드, undo
 app.js            — 프론트엔드 로직 (Miller Columns, 사이드바, 키보드, 컨텍스트 메뉴, 리네임)
 index.html        — HTML 구조 + 컨텍스트 메뉴 DOM
-style.css         — 전체 스타일 (다크 테마)
+style.css         — 전체 스타일 (Windows 11 라이트 테마)
 icon.ico          — 앱 아이콘
 favorites.json    — 사이드바 즐겨찾기 (런타임 자동 생성, gitignore)
 ```
