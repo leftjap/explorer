@@ -28,6 +28,8 @@ def main():
         debug=False,
         private_mode=False,
         storage_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "webview_data"),
+        http_server=True,
+        http_port=18904,
     )
 
 
