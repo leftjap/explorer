@@ -1,6 +1,6 @@
 # CLAUDE.md — explorer
 
-> 공통 실행 규칙은 playbook CLAUDE.md 참조.
+> 공통 실행 규칙은 opus CLAUDE.md 참조.
 > 이 파일은 explorer 고유 주의사항만 담는다.
 
 ## explorer 고유 주의
