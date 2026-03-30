@@ -24,7 +24,11 @@ def main():
         height=700,
         min_size=(800, 400),
     )
-    webview.start(debug=False)
+    webview.start(
+        debug=False,
+        private_mode=False,
+        storage_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "webview_data"),
+    )
 
 
 if __name__ == "__main__":

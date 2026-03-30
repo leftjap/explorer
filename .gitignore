@@ -5,3 +5,4 @@ build/
 dist/
 *.lnk
 favorites.json
+webview_data/
