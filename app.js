@@ -43,9 +43,7 @@
         _cachedColumnWidths = widths;
         try {
             await window.pywebview.api.save_column_widths(widths);
-        } catch (e) {
-            // 저장 실패 무시
-        }
+        } catch (e) {}
     }
 
     async function getColumnWidth(depth) {
@@ -409,7 +407,6 @@
         function onMouseUp() {
             resizer.classList.remove("active");
 
-            // 최종 너비를 depth별로 localStorage에 저장
             var finalWidth = col.offsetWidth;
             var depth = parseInt(col.dataset.depth);
             if (!isNaN(depth)) {
