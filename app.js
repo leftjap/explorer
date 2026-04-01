@@ -626,9 +626,6 @@
             updateBreadcrumb();
             statusbarEl.textContent = row.dataset.name;
         }
-
-        // 현재 rootPath의 탐색 경로 저장
-        lastVisitedPaths[rootPath] = columnPaths.slice();
     }
 
     async function restoreColumns(savedPaths) {
