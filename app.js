@@ -23,6 +23,9 @@
         renameTimeout: null
     };
 
+    // 사이드바 항목별 마지막 탐색 경로 기억
+    var lastVisitedPaths = {};
+
     // 컬럼 너비 저장 (depth별)
     var _cachedColumnWidths = null;
 
@@ -146,7 +149,12 @@
                 item.appendChild(icon);
                 item.appendChild(name);
 
-                item.addEventListener("click", function() {
+                item.addEventListener("click", async function() {
+                    // 현재 경로 저장 (전환 전)
+                    if (rootPath && columnPaths.length > 0) {
+                        lastVisitedPaths[rootPath] = columnPaths.slice();
+                    }
+
                     rootPath = fav.path;
                     var allItems = sidebarEl.querySelectorAll(".sidebar-item");
                     for (var j = 0; j < allItems.length; j++) {
@@ -154,7 +162,13 @@
                     }
                     item.classList.add("active");
                     columnPaths = [];
-                    loadColumn(rootPath, 0);
+                    await loadColumn(rootPath, 0);
+
+                    // 저장된 경로 복원
+                    var saved = lastVisitedPaths[rootPath];
+                    if (saved && saved.length > 1) {
+                        await restoreColumns(saved);
+                    }
                 });
 
                 item.addEventListener("contextmenu", function(e) {
@@ -612,6 +626,37 @@
             updateBreadcrumb();
             statusbarEl.textContent = row.dataset.name;
         }
+
+        // 현재 rootPath의 탐색 경로 저장
+        lastVisitedPaths[rootPath] = columnPaths.slice();
+    }
+
+    async function restoreColumns(savedPaths) {
+        // savedPaths: [rootPath, child1, child2, ...]
+        // depth 0은 이미 loadColumn으로 로드된 상태에서 호출
+        for (var i = 1; i < savedPaths.length; i++) {
+            var prevCol = getColumnByDepth(i - 1);
+            if (!prevCol) break;
+
+            // 이전 컬럼에서 해당 경로의 항목을 찾아 selected 처리
+            var targetPath = savedPaths[i];
+            var items = prevCol.querySelectorAll(".column-item");
+            var found = false;
+            for (var j = 0; j < items.length; j++) {
+                if (items[j].dataset.path === targetPath && items[j].dataset.isDir === "true") {
+                    // 기존 선택 해제
+                    var prev = prevCol.querySelector(".selected");
+                    if (prev) prev.classList.remove("selected");
+                    items[j].classList.add("selected");
+                    // 하위 컬럼 로드
+                    await loadColumn(targetPath, i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) break; // 경로가 삭제/변경된 경우 중단
+        }
+        updateBreadcrumb();
     }
 
     function handleDoubleClick(row, depth) {
