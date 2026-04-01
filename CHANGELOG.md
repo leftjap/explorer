@@ -5,3 +5,5 @@
 
 ### Removed
 - __pycache__ 레포 트래킹 제거 — .gitignore 등록되어 있었으나 과거 커밋으로 트래킹 중이었음. (git rm --cached)
+- build/ 폴더 삭제 — PyInstaller 중간 산출물 및 구 이름(Explorer) 잔재 폴더 포함. 재빌드 시 자동 생성됨
+- Explorer.lnk 삭제 — 리네임 전 구 이름 바로가기 잔재
