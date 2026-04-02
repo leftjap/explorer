@@ -5,6 +5,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finder</title>
+    <!-- Sentry Error Monitoring -->
+    <script>
+      window.sentryOnLoad = function () {
+        Sentry.init({
+          environment: 'desktop',
+          sampleRate: 1.0,
+          ignoreErrors: [
+            'ResizeObserver loop',
+            'Non-Error promise rejection captured',
+            'Network request failed',
+            /Failed to fetch/
+          ],
+          beforeSend: function(event) {
+            var key = (event.exception && event.exception.values && event.exception.values[0])
+                      ? event.exception.values[0].type + ':' + event.exception.values[0].value
+                      : 'unknown';
+            if (!window._sentryRateMap) window._sentryRateMap = {};
+            var now = Date.now();
+            if (!window._sentryRateMap[key]) window._sentryRateMap[key] = [];
+            window._sentryRateMap[key].push(now);
+            window._sentryRateMap[key] = window._sentryRateMap[key].filter(function(t) { return now - t < 60000; });
+            if (window._sentryRateMap[key].length > 5) return null;
+            return event;
+          }
+        });
+        Sentry.setTag('app', 'finder');
+      };
+    </script>
+    <script
+      src="https://js.sentry-cdn.com/2c7e0e3b1026d137b7720e90f18001a4.min.js"
+      crossorigin="anonymous"
+    ></script>
     <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>

@@ -1,5 +1,8 @@
 ## 2026-04-02
 
+### Added
+- Sentry エラー監視を追加 — CDN Loader方式、environment: desktop. (index.html)
+
 ### Changed
 - 빌드 중 앱 종료 불필요 — 실행 중 폴더 rename 후 교체 방식. build.bat 도입. (build.bat, AGENTS.md)
 - 빌드 경로 분리 — 빌드 후 C:\apps\Finder\로 자동 복사, 작업표시줄 고정 유지. (AGENTS.md)
