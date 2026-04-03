@@ -310,3 +310,26 @@ body {
     border: 2px solid transparent;
     background-clip: padding-box;
 }
+
+/* 드래그 앤 드롭 스타일 */
+.column-item.dragging {
+    opacity: 0.4;
+}
+
+.column-item.drop-target {
+    background: rgba(0, 120, 212, 0.12);
+    outline: 2px solid rgba(0, 120, 212, 0.4);
+    outline-offset: -2px;
+    border-radius: 4px;
+}
+
+.column.column-drop-target {
+    background: rgba(0, 120, 212, 0.06);
+}
+
+.sidebar-item.drop-target {
+    background: rgba(0, 120, 212, 0.12);
+    outline: 2px solid rgba(0, 120, 212, 0.4);
+    outline-offset: -2px;
+    border-radius: 4px;
+}

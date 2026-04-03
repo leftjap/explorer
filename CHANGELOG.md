@@ -1,5 +1,8 @@
 ## 2026-04-03
 
+### Added
+- 드래그 앤 드롭으로 파일/폴더 이동 기능 (컬럼 내, 컬럼 간, 사이드바 즐겨찾기로 이동 가능, Ctrl+Z 되돌리기 지원) — api.py move_items, app.js dragstart/dragover/drop, style.css 드래그 시각화
+
 ### Changed
 - 실행 경로를 C:\apps\Finder\에서 C:\dev\apps\finder\bin\으로 통합 (main.py, updater.bat, .gitignore, CLAUDE.md, AGENTS.md)
 

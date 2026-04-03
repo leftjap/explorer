@@ -193,6 +193,9 @@
         addBtn.appendChild(addLabel);
         addBtn.addEventListener("click", handleAddFavorite);
         sidebarEl.appendChild(addBtn);
+
+        // 사이드바 drop 이벤트 설정
+        setupSidebarDropZones();
     }
 
     // --- 사이드바 즐겨찾기 관리 ---
@@ -385,6 +388,58 @@
                     handleItemClickUnified(row, depth);
                 });
 
+                // 드래그 앤 드롭 설정
+                row.setAttribute('draggable', 'true');
+
+                row.addEventListener('dragstart', function(e) {
+                    var selected = getSelectedItemPaths();
+                    if (!selected.includes(row.dataset.path)) {
+                        // 선택된 항목이 아니면 이 항목만 드래그
+                        selected.length = 0;
+                        selected.push(row.dataset.path);
+                    }
+                    e.dataTransfer.setData('application/x-finder-paths', JSON.stringify(selected));
+                    e.dataTransfer.effectAllowed = 'move';
+                    row.classList.add('dragging');
+                });
+
+                row.addEventListener('dragend', function(e) {
+                    row.classList.remove('dragging');
+                    document.querySelectorAll('.drop-target').forEach(function(el) {
+                        el.classList.remove('drop-target');
+                    });
+                });
+
+                // 폴더 아이템에만 drop 이벤트 추가
+                if (item.is_dir) {
+                    row.addEventListener('dragover', function(e) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        row.classList.add('drop-target');
+                    });
+
+                    row.addEventListener('dragleave', function(e) {
+                        row.classList.remove('drop-target');
+                    });
+
+                    row.addEventListener('drop', async function(e) {
+                        e.preventDefault();
+                        row.classList.remove('drop-target');
+                        var data = e.dataTransfer.getData('application/x-finder-paths');
+                        if (!data) return;
+                        var sources = JSON.parse(data);
+                        if (sources.includes(row.dataset.path)) return;
+                        var result = await window.pywebview.api.move_items(sources, row.dataset.path);
+                        if (result.moved.length > 0) {
+                            statusbarEl.textContent = '✓ ' + result.moved.length + '개 항목 이동 완료';
+                            await refreshAllColumns();
+                        }
+                        if (result.errors.length > 0) {
+                            statusbarEl.textContent = '✗ 오류: ' + result.errors.join(', ');
+                        }
+                    });
+                }
+
                 col.appendChild(row);
             });
         }
@@ -403,6 +458,10 @@
 
         updateBreadcrumb();
         updateStatusbar(result.items.length);
+
+        // 드래그 앤 드롭 영역 설정
+        setupColumnDropZones();
+        setupSidebarDropZones();
     }
 
     // --- 컬럼 리사이즈 ---
@@ -512,6 +571,56 @@
                     window._lastClickEvent = e;
                     handleItemClickUnified(row, depth);
                 });
+
+                // 드래그 앤 드롭 설정
+                row.setAttribute('draggable', 'true');
+
+                row.addEventListener('dragstart', function(e) {
+                    var selected = getSelectedItemPaths();
+                    if (!selected.includes(row.dataset.path)) {
+                        selected.length = 0;
+                        selected.push(row.dataset.path);
+                    }
+                    e.dataTransfer.setData('application/x-finder-paths', JSON.stringify(selected));
+                    e.dataTransfer.effectAllowed = 'move';
+                    row.classList.add('dragging');
+                });
+
+                row.addEventListener('dragend', function(e) {
+                    row.classList.remove('dragging');
+                    document.querySelectorAll('.drop-target').forEach(function(el) {
+                        el.classList.remove('drop-target');
+                    });
+                });
+
+                if (item.is_dir) {
+                    row.addEventListener('dragover', function(e) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        row.classList.add('drop-target');
+                    });
+
+                    row.addEventListener('dragleave', function(e) {
+                        row.classList.remove('drop-target');
+                    });
+
+                    row.addEventListener('drop', async function(e) {
+                        e.preventDefault();
+                        row.classList.remove('drop-target');
+                        var data = e.dataTransfer.getData('application/x-finder-paths');
+                        if (!data) return;
+                        var sources = JSON.parse(data);
+                        if (sources.includes(row.dataset.path)) return;
+                        var result = await window.pywebview.api.move_items(sources, row.dataset.path);
+                        if (result.moved.length > 0) {
+                            statusbarEl.textContent = '✓ ' + result.moved.length + '개 항목 이동 완료';
+                            await refreshAllColumns();
+                        }
+                        if (result.errors.length > 0) {
+                            statusbarEl.textContent = '✗ 오류: ' + result.errors.join(', ');
+                        }
+                    });
+                }
 
                 col.appendChild(row);
             });
@@ -1321,5 +1430,100 @@
     function hideContextMenu() {
         contextMenuEl.style.display = "none";
         contextTarget = null;
+    }
+
+    // --- 드래그 앤 드롭 헬퍼 함수 ---
+
+    function getSelectedItemPaths() {
+        var selected = document.querySelectorAll('.column-item.selected');
+        var paths = [];
+        for (var i = 0; i < selected.length; i++) {
+            if (selected[i].dataset.path) {
+                paths.push(selected[i].dataset.path);
+            }
+        }
+        return paths;
+    }
+
+    async function refreshAllColumns() {
+        for (var i = 0; i < columnPaths.length; i++) {
+            await refreshColumn(i);
+        }
+    }
+
+    // 컬럼 빈 영역에 drop 이벤트 설정
+    function setupColumnDropZones() {
+        var columns = columnsEl.querySelectorAll('.column');
+        for (var i = 0; i < columns.length; i++) {
+            (function(col) {
+                col.addEventListener('dragover', function(e) {
+                    if (e.target.closest('.column-item')) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    col.classList.add('column-drop-target');
+                });
+
+                col.addEventListener('dragleave', function(e) {
+                    if (e.target === col) {
+                        col.classList.remove('column-drop-target');
+                    }
+                });
+
+                col.addEventListener('drop', async function(e) {
+                    if (e.target.closest('.column-item')) return;
+                    e.preventDefault();
+                    col.classList.remove('column-drop-target');
+                    var data = e.dataTransfer.getData('application/x-finder-paths');
+                    if (!data) return;
+                    var sources = JSON.parse(data);
+                    var columnPath = col.dataset.path;
+                    if (!columnPath) return;
+                    var result = await window.pywebview.api.move_items(sources, columnPath);
+                    if (result.moved.length > 0) {
+                        statusbarEl.textContent = '✓ ' + result.moved.length + '개 항목 이동 완료';
+                        await refreshAllColumns();
+                    }
+                    if (result.errors.length > 0) {
+                        statusbarEl.textContent = '✗ 오류: ' + result.errors.join(', ');
+                    }
+                });
+            })(columns[i]);
+        }
+    }
+
+    // 사이드바 항목에 drop 이벤트 설정
+    function setupSidebarDropZones() {
+        var sidebarItems = sidebarEl.querySelectorAll('.sidebar-item');
+        for (var i = 0; i < sidebarItems.length; i++) {
+            (function(item) {
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    item.classList.add('drop-target');
+                });
+
+                item.addEventListener('dragleave', function(e) {
+                    item.classList.remove('drop-target');
+                });
+
+                item.addEventListener('drop', async function(e) {
+                    e.preventDefault();
+                    item.classList.remove('drop-target');
+                    var data = e.dataTransfer.getData('application/x-finder-paths');
+                    if (!data) return;
+                    var sources = JSON.parse(data);
+                    var destPath = item.dataset.path;
+                    if (!destPath) return;
+                    var result = await window.pywebview.api.move_items(sources, destPath);
+                    if (result.moved.length > 0) {
+                        statusbarEl.textContent = '✓ ' + result.moved.length + '개 항목 이동 완료';
+                        await refreshAllColumns();
+                    }
+                    if (result.errors.length > 0) {
+                        statusbarEl.textContent = '✗ 오류: ' + result.errors.join(', ');
+                    }
+                });
+            })(sidebarItems[i]);
+        }
     }
 })();

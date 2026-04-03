@@ -422,6 +422,63 @@ class Api:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    def move_items(self, sources, dest_dir):
+        """여러 파일/폴더를 한 번에 이동 (드래그 앤 드롭용)
+
+        Args:
+            sources: list of absolute paths (files/folders to move)
+            dest_dir: absolute path of destination directory
+
+        Returns:
+            {'success': bool, 'moved': [...], 'errors': [...]}
+        """
+        if not self._is_allowed(dest_dir) or not os.path.isdir(dest_dir):
+            return {'success': False, 'moved': [], 'errors': ['목적지 경로가 유효하지 않습니다.']}
+
+        moved = []
+        errors = []
+        undo_entries = []
+
+        for src in sources:
+            if not self._is_allowed(src) or not os.path.exists(src):
+                errors.append(f'접근 불가: {os.path.basename(src)}')
+                continue
+
+            name = os.path.basename(src)
+            dest_path = os.path.join(dest_dir, name)
+
+            # 자기 자신으로의 이동 방지
+            if os.path.normpath(src) == os.path.normpath(dest_path):
+                continue
+
+            # 폴더를 자기 하위로 이동 방지
+            if os.path.isdir(src) and os.path.normpath(dest_dir).startswith(os.path.normpath(src) + os.sep):
+                errors.append(f'자기 하위 폴더로 이동 불가: {name}')
+                continue
+
+            # 같은 이름 존재 시 덮어쓰기 방지
+            if os.path.exists(dest_path):
+                errors.append(f'이미 존재: {name}')
+                continue
+
+            try:
+                shutil.move(src, dest_path)
+                moved.append(name)
+                undo_entries.append({
+                    'src': dest_path,   # 되돌릴 때의 source (현재 위치)
+                    'dest': os.path.dirname(src)  # 되돌릴 때의 dest (원래 디렉터리)
+                })
+            except Exception as e:
+                errors.append(f'{name}: {str(e)}')
+
+        if undo_entries:
+            undo_stack.append({
+                'type': 'move_items',
+                'entries': undo_entries
+            })
+
+        return {'success': len(errors) == 0, 'moved': moved, 'errors': errors}
+
     def undo(self):
         """마지막 작업 실행 취소"""
         try:
@@ -444,6 +501,22 @@ class Api:
                 if os.path.exists(action['dest']):
                     shutil.move(action['dest'], action['src'])
                     return {'success': True, 'message': '이동 취소: ' + os.path.basename(action['src'])}
+
+            elif action_type == 'move_items':
+                # 여러 항목 이동 취소
+                errors = []
+                count = 0
+                for entry in action['entries']:
+                    try:
+                        if os.path.exists(entry['src']):
+                            shutil.move(entry['src'], entry['dest'])
+                            count += 1
+                    except Exception as e:
+                        errors.append(str(e))
+                if count > 0:
+                    return {'success': True, 'message': f'{count}개 항목 이동 취소'}
+                if errors:
+                    return {'success': False, 'error': '; '.join(errors)}
 
             elif action_type == 'rename':
                 # 원래 이름으로 되돌리기
