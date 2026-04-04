@@ -126,6 +126,23 @@
             _cachedColumnWidths = {};
         }
 
+        // 포커스 복귀 시 컬럼 자동 갱신
+        var _refreshPending = false;
+        function onFocusRefresh() {
+            if (_refreshPending) return;
+            _refreshPending = true;
+            setTimeout(function () {
+                _refreshPending = false;
+                refreshAllColumns();
+            }, 300);
+        }
+        window.addEventListener("focus", onFocusRefresh);
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") {
+                onFocusRefresh();
+            }
+        });
+
         rootPath = favorites.length > 0 ? favorites[0].path : await window.pywebview.api.get_root();
         await loadColumn(rootPath, 0);
     }
@@ -1269,6 +1286,12 @@
             }
         } catch (e) {
             statusbarEl.textContent = '실행 취소 실패: ' + e.message;
+        }
+    }
+
+    async function refreshAllColumns() {
+        for (var i = 0; i < columnPaths.length; i++) {
+            await refreshColumn(i);
         }
     }
 
